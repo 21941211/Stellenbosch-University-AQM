@@ -1,0 +1,11 @@
+CERN Open Hardware Licence Version 2 - Strongly Reciprocal
+
+You may redistribute and modify the Documentation and make Products using it under the terms of the CERN-OHL-S v2.
+
+If you distribute the Documentation or Products, you must: (a) retain a copy of this licence; (b) provide sufficient information to enable recipients to access a copy of the Documentation; and (c) prominently display the Source location on the Documentation and Products.
+
+If you modify the Documentation, you must: (a) identify the changes; (b) retain the notices; and (c) license the modified Documentation under CERN-OHL-S v2.
+
+If you manufacture Products, or have them manufactured on your behalf, and sell or distribute them, you must either (a) provide each recipient with a copy of the Source, or (b) ensure they can access it from a URL reasonably calculated to remain valid.
+
+Full licence text: https://ohwr.org/project/cernohl/raw/master/CERN-OHL-S-2.0.pdf
