@@ -29,6 +29,7 @@ uint8_t LoRaBuffer_SDI12[13] = {0};
 #define FILE_NAME_SDI12_60 "/SDI_12_60cm_Measurements.csv"
 #define FILE_NAME_SDI12_90 "/SDI_12_90cm_Measurements.csv"
 #define FILE_NAME_CS655 "/SDI_12_CS655_Measurements.csv"
+#define FILE_NAME_DEBUG "/Debug.csv"
 #define SYSPARAMS "/parameters.txt"
 
 
@@ -87,6 +88,9 @@ Serial.println("File opened");
     deviceIDStr.trim(); // Remove any whitespace or newline characters
     Serial.print("Device ID (DEC): ");
     Serial.println(deviceIDStr);
+    if(deviceIDStr=="5"){
+      devID5 = true;
+    }
     if (deviceIDStr.length() == 0 || deviceIDStr.toInt() <= 0 || deviceIDStr.toInt() > 255) {
       Serial.println("Error: Invalid or missing DEVID. Using default ID 1.");
       deviceIDStr = "1"; // Default value
@@ -113,6 +117,65 @@ reverseByteOrder(DEVEUI);
   return true;
 }
 
+
+void writeToDebug(const char *message)
+{
+  Serial.println("##################################################");
+  Serial.print("Writing to debug file: ");
+
+  enableSD_ON();
+  setSPI(SD_SPI);
+  delay(200);
+
+
+  while(!SD.begin(SD_CS_PIN, SPI, 80000000))
+  {
+    Serial.println("Card Mount Failed");
+
+    for (size_t i = 0; i < 2; i++)
+    {
+    digitalWrite( DEBUG_LED_PIN, HIGH);
+    delay(20);
+    digitalWrite(DEBUG_LED_PIN,LOW);
+    delay(20);
+    }
+    delay(1000);
+  }
+ 
+uint8_t cardType = SD.cardType();
+
+  if (cardType == CARD_NONE)
+  {
+    Serial.println("No SD card attached");
+    return;
+  }
+
+if(!SD.exists(FILE_NAME_DEBUG))
+  {
+    Serial.println("Debug file does not exist, creating it now");
+    writeFile(SD, FILE_NAME_DEBUG, "Debug file created\n");
+  }
+
+  File debugFile = SD.open(FILE_NAME_DEBUG, FILE_APPEND);
+  if (!debugFile)
+  {
+    Serial.println("Failed to open debug file for writing");
+    return;
+  }
+  if (debugFile.println(String(message) + ", Bootcount: " + String(bootCount)))
+  {
+    // Print a message to the serial monitor to indicate that the debug message was written successfully
+    Serial.print("Debug message written: ");
+    Serial.println(message + String(", Bootcount: ") + String(bootCount));
+  }
+  else
+  {
+    Serial.println("Write to debug file failed");
+  }
+  debugFile.close();
+  enableSD_OFF();
+   Serial.println("##################################################");
+}
 
 void listDir(fs::FS &fs, const char *dirname, uint8_t levels)
 {
@@ -450,6 +513,7 @@ int LEDFlash = 0;
     delay(1000);
     
   }
+  
 if (LEDFlash ==5)
 {
   Serial.println("SD connect timeout reached");
@@ -486,12 +550,14 @@ Serial.println("Reading loRa keys from file");
  
   if (!SD.exists(fileName))
   {
-    writeFile(SD, fileName, "Air Temperature,Air Humidity,PM1.0,PM2.5,PM10.0,Boot count\n");
+    writeFile(SD, fileName, "Air Temperature,Air Humidity,PM1.0,PM2.5,PM10.0,Battery %,Boot count\n");
   }
 
   Serial.printf("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
   Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
 
+
+  //enableSD_OFF();
 
    Serial.println("SD Setup complete");
 Serial.println("******************************************************");
@@ -518,7 +584,7 @@ Serial.println("Checking data buffers");
   dataToBuff16(pms2_5_buffer, PM2_5_avg, buffSize);
   dataToBuff16(pms10_0_buffer, PM10_0_avg, buffSize);
   dataToBuff(battBuffer, batPercentage, buffSize);
-  dataToBuff(BootCountBuffer, bootCount, buffSize);
+  dataToBuff(BootCountBuffer, float(bootCount)/100.0, buffSize);
 
  
 

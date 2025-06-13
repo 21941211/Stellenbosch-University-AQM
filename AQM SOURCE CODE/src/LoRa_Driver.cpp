@@ -161,8 +161,8 @@ void onEvent(ev_t ev)
 
         LMIC_shutdown();
         delay(1000);
-            
-            goSleep(DEEP_SLEEP);
+            writeToDebug("LoRa TX Complete, going to sleep");
+            goSleep(TOTAL_CYCLE_TIME);
         break;
     case EV_LOST_TSYNC:
         Serial.println(F("EV_LOST_TSYNC"));

@@ -18,11 +18,17 @@ uint16_t PM1_0_avg =0;
  uint16_t PM2_5_avg=0;
 uint16_t PM10_0_avg=0;
 
+bool devID5 = false; // default value
+
 
 void pms5003_power(){
-    pinMode(PMS5003_EN_PIN,OUTPUT);
+    //pinMode(PMS5003_EN_PIN,OUTPUT);
     digitalWrite(PMS5003_EN_PIN, HIGH);
-    Serial.println("PMS5003 now on...");
+    if(devID5){
+        Serial.println("DEVID 5 detected, powering PMS5003 through DHT22 VCC and GND pins");
+        digitalWrite(DHT22_ENABLE_PIN, HIGH); // turn the DHT22 off
+    }
+    //Serial.println("PMS5003 now on...");
    //delay(40000);
 }
 
@@ -34,6 +40,7 @@ void pms5003_power(){
 
 void pms5003_shutdown(){
     digitalWrite(PMS5003_EN_PIN, LOW);
+    digitalWrite(DHT22_ENABLE_PIN,LOW);
     delay(300); 
 }
 

@@ -12,6 +12,10 @@
 #include "PMS5003_Driver.h"
 #include "SoftwareSerial.h"
 #include <PMS.h>
+#include <esp_system.h>
+// #include "OTA_Driver.h"
+// #include "esp_wifi.h"
+
 
 #define PULLDOWN_GPIO GPIO_NUM_5 // Only RTC IO are allowed
 
@@ -36,9 +40,62 @@ void setup()
 {
 
   // Slow down CPU for lower power usage
-  //setCpuFrequencyMhz(40);
+  setCpuFrequencyMhz(40);
   Serial.begin(115200);
-  delay(500);
+
+
+      delay(500);
+
+   pinMode(DEBUG_LED_PIN, OUTPUT);
+   pinMode(PMS5003_EN_PIN,OUTPUT);
+
+     delay(500);
+
+//   while(1){
+//   digitalWrite(DEBUG_LED_PIN, LOW); // turn the LED off (HIGH is the voltage level)
+//   digitalWrite(PMS5003_EN_PIN, LOW);
+//   delay(1000);
+//   digitalWrite(PMS5003_EN_PIN,HIGH);
+//   digitalWrite(DEBUG_LED_PIN, HIGH); // turn the LED on (HIGH is the voltage level)
+//   delay(1000);
+// }
+
+pinMode(SD_ENABLE_PIN, OUTPUT);
+pinMode(LORA_CS_PIN, OUTPUT);
+pinMode(DHT22_ENABLE_PIN, OUTPUT);
+
+esp_reset_reason_t reason = esp_reset_reason();
+
+  Serial.print("Reset reason: ");
+  switch (reason) {
+    case ESP_RST_BROWNOUT:
+      Serial.println("⚠️ Brownout reset!");
+      writeToDebug("Brownout reset");
+      break;
+    case ESP_RST_POWERON:
+      Serial.println("Power-on reset.");
+      writeToDebug("Power-on reset");
+      break;
+    case ESP_RST_SW:
+      Serial.println("Software reset.");
+      writeToDebug("Software reset.");
+      break;
+    case ESP_RST_WDT:
+      Serial.println("Watchdog reset.");
+      writeToDebug("Watchdog reset.");
+      break;
+    case ESP_RST_PANIC:
+      Serial.println("Panic reset.");
+      writeToDebug("Panic reset.");
+      break;
+    default:
+      Serial.print("Other: ");
+      Serial.println(reason);
+      writeToDebug("other");
+      break;
+  }
+
+
 
 
 
@@ -58,21 +115,71 @@ void setup()
     Serial.println("Measurement transmitted in previous cycle (0 = yes, 1 = no): " + String(MEASURE_COMPLETE));
   Serial.println("******************************************************");
 
+// digitalWrite(DEBUG_LED_PIN, HIGH); // turn the LED off (HIGH is the voltage level)
+// delay(500);
+// digitalWrite(DEBUG_LED_PIN, LOW); // turn the LED on (HIGH is the voltage level)
+// delay(500);
+  // if (!OTA_Window_Missed)
+  // {
+  //   if (setupOTA()){ 
+  //     LoopOTA();
+  //   OTA_Window_Missed = 1;
+  //   esp_sleep_enable_timer_wakeup(2*uS_TO_S_FACTOR);
+  //   disableWiFi();
+  //   esp_wifi_deinit();  // deeper cleanup, if needed
+  //   Serial.println("OTA Window Missed, going to sleep for 2 seconds");
+  //   delay(1000);
+  //   esp_deep_sleep_start();
+  // } else{
+  //   OTA_Window_Missed = 1;
+  //   disableWiFi();
+  //   esp_sleep_enable_timer_wakeup(2*uS_TO_S_FACTOR);
+  //   esp_wifi_deinit();  // deeper cleanup, if needed
+  //   Serial.println("OTA Window Missed, going to sleep for 2 seconds");
+  //   delay(1000);
+  //   esp_deep_sleep_start();
+    
+  // }
+  // }
 
+
+  // Serial.print("Free heap after WiFi cleanup: ");
+  // Serial.println(ESP.getFreeHeap());
+  
   
 
-  pinMode(SD_ENABLE_PIN, OUTPUT);
-  pinMode(LORA_CS_PIN, OUTPUT);
-  pinMode(DEBUG_LED_PIN, OUTPUT);
-  pinMode(DHT22_ENABLE_PIN, OUTPUT);
+//  if (BATTERY_LOW == 1)
+//   {
+//     measBat();
+//     // this will never run if the battery is low
+//     BATTERY_LOW = 0;
+//   }
+
+ measBat();
 
 
-//measBat();
-//InfiniteStop();
+ writeToDebug("measBat done");
+ BATTERY_LOW = 0;
+
+// for (int i = 0; i < 2; i++)
+// {
+//   digitalWrite(DEBUG_LED_PIN, HIGH); // turn the LED on (HIGH is the voltage level)
+//   delay(500);
+//   digitalWrite(DEBUG_LED_PIN, LOW); // turn the LED off (HIGH is the voltage level)
+//   delay(500);
+// }
+
 
 #ifdef ENABLE_SD
   SDSetup();
-
+writeToDebug("SD Setup done");
+//   for (int i = 0; i < 3; i++)
+// {
+//   digitalWrite(DEBUG_LED_PIN, HIGH); // turn the LED on (HIGH is the voltage level)
+//   delay(500);
+//   digitalWrite(DEBUG_LED_PIN, LOW); // turn the LED off (HIGH is the voltage level)
+//   delay(500);
+// }
  
 
 #else
@@ -80,56 +187,56 @@ void setup()
 #endif
 
 if(!MEASURE_COMPLETE){
- pms5003_power();
+
  Serial2.begin(9600);
- for (int i = 0; i < 30; i++)
- {
-  Serial.println("Warming up...");
+ writeToDebug("PMS5003 Serial started");
+ delay(500);
+  pms5003_power();
+  //writeToDebug("PMS5003 powered on");
   delay(1000);
- }
+int warmupMillis = millis();
+
+pms.wakeUp();
+writeToDebug("PMS5003 wakeup command sent");
+
+pms.activeMode();
+writeToDebug("PMS5003 active mode set");
+
+while(millis() - warmupMillis < 30000){
+  if (pms.read(data))
+  {
+    Serial.print("PMS5003 warmup: ");
+    Serial.print("PM 1.0 (ug/m3): ");
+    Serial.println(data.PM_AE_UG_1_0);
+    Serial.print("PM 2.5 (ug/m3): ");
+    Serial.println(data.PM_AE_UG_2_5);
+    Serial.print("PM 10.0 (ug/m3): ");
+    Serial.println(data.PM_AE_UG_10_0);
+  }
+}
+
+
+writeToDebug("PMS5003 warmup done");
+
+//   for (int i = 0; i < 4; i++)
+// {
+//   digitalWrite(DEBUG_LED_PIN, HIGH); // turn the LED on (HIGH is the voltage level)
+//   delay(500);
+//   digitalWrite(DEBUG_LED_PIN, LOW); // turn the LED off (HIGH is the voltage level)
+//   delay(500);
+// }
 
  Serial.println("Measuring now...");
 }
 
-
-
-  if (BATTERY_LOW == 1)
-  {
-    measBat();
-    // this will never run if the battery is low
-    BATTERY_LOW = 0;
-  }
-
   if (MEASURE_COMPLETE)
   {
+    writeToDebug("Measure complete, skipping measurements");
     LoRaSetup();
     decodePayload();
     os_runloop();
   }
 
-// #ifdef ENABLE_MEASURE
-//   pinMode(DHT22_ENABLE_PIN, OUTPUT);
-// #endif
-
-
-// #ifdef ENABLE_LORA
-//   if (MEASURE_COMPLETE)
-//   {
-//     LoRaSetup();
-//   }
-// #endif
-
-// #ifdef ENABLE_LORA_TEST
-//   {
-//     LoRaSetup();
-//   }
-// #endif
-
-//   digitalWrite(DEBUG_LED_PIN, HIGH);
-
-// //Code here to start PMS5003 setup
-
-//   digitalWrite(DEBUG_LED_PIN, LOW); // turn the LED off (HIGH is the voltage level)
 }
 
 void loop()
@@ -137,6 +244,7 @@ void loop()
 
   if (DHT22_DONE&&PMS_DONE)
   {
+   
     digitalWrite(DHT22_ENABLE_PIN, LOW); // turn the LED on (HIGH is the voltage level)
   }
   else if (digitalRead(DHT22_ENABLE_PIN) == LOW)
@@ -149,9 +257,6 @@ void loop()
 
   if (!MEASURE_COMPLETE)
   {
-
-    if (!BATT_DONE)
-      measBat();
 
    if (pms.read(data)&&PM_Index<20)
   {
@@ -201,14 +306,7 @@ void loop()
 
   Serial.println("PM 1.0 (ug/m3) trimmed mean: " + String(PM1_0_avg));
   Serial.println("PM 2.5 (ug/m3) trimmed mean: " + String(PM2_5_avg));
-  Serial.println("PM 10.0 (ug/m3) trimmed mean: " + String(PM10_0_avg));
-
-  // writeToSD();
-  // readLastEntry();
-  // //LoRaSetup();
-  // decodePayload();
-
-  
+  Serial.println("PM 10.0 (ug/m3) trimmed mean: " + String(PM10_0_avg));  
 PMS_DONE =1;
 
   }
@@ -220,10 +318,11 @@ PMS_DONE =1;
     {
       Serial.println("All Measurements Done");
       Serial.println("******************************************************");
-     // InfiniteStop();
+   
     
 
       MEASURE_COMPLETE = 1;
+       writeToDebug("Battery, DHT22 and PMS done");
     }
   }
   else

@@ -151,7 +151,7 @@ if (batPercentage<10)
 
  BATTERY_LOW = 1;
  delay(100);
- goSleep(DEEP_SLEEP);
+ goSleep(TOTAL_CYCLE_TIME);
  
 }
 
